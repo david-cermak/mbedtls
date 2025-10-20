@@ -862,6 +862,11 @@ static int ssl_tls13_parse_supported_groups_ext(mbedtls_ssl_context *ssl,
                               ("got named group: %s(%04x)",
                                mbedtls_ssl_named_group_to_str(named_group),
                                named_group));
+        
+        // DEBUG: Print group ID for X25519MLKEM768 testing
+        if (named_group == 0x11EC) {
+            MBEDTLS_SSL_DEBUG_MSG(1, ("*** FOUND X25519MLKEM768 GROUP ID: 0x11EC ***"));
+        }
 
         if (!mbedtls_ssl_named_group_is_offered(ssl, named_group) ||
             !mbedtls_ssl_named_group_is_supported(named_group) ||

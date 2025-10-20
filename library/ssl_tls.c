@@ -5666,6 +5666,8 @@ void mbedtls_ssl_config_init(mbedtls_ssl_config *conf)
  * about this list.
  */
 static const uint16_t ssl_preset_default_groups[] = {
+    /* Hybrid Post-Quantum Groups - Add X25519MLKEM768 first for testing */
+    MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768,
 #if defined(MBEDTLS_ECP_HAVE_CURVE25519)
     MBEDTLS_SSL_IANA_TLS_GROUP_X25519,
 #endif
@@ -6360,6 +6362,8 @@ static const struct {
 #if defined(MBEDTLS_ECP_HAVE_CURVE448)
     { 30, MBEDTLS_ECP_DP_CURVE448, PSA_ECC_FAMILY_MONTGOMERY, 448 },
 #endif
+    /* Hybrid Post-Quantum Groups - Map X25519MLKEM768 to X25519 for compatibility */
+    { 0x11EC, MBEDTLS_ECP_DP_CURVE25519, PSA_ECC_FAMILY_MONTGOMERY, 255 },
     { 0, MBEDTLS_ECP_DP_NONE, 0, 0 },
 };
 

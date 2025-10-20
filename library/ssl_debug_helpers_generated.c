@@ -48,6 +48,8 @@ const char *mbedtls_ssl_named_group_to_str( uint16_t in )
         return "x25519";
     case MBEDTLS_SSL_IANA_TLS_GROUP_X448:
         return "x448";
+    case MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768:
+        return "x25519mlkem768";
     case MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE2048:
         return "ffdhe2048";
     case MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE3072:
