@@ -2392,6 +2392,9 @@ void mbedtls_ssl_conf_sig_algs(mbedtls_ssl_config *conf,
  * about this list.
  */
 static const uint16_t ssl_preset_default_groups[] = {
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768,
+#endif
 #if defined(PSA_WANT_ECC_MONTGOMERY_255)
     MBEDTLS_SSL_IANA_TLS_GROUP_X25519,
 #endif
@@ -5848,6 +5851,9 @@ static const struct {
 #endif
 #if defined(PSA_WANT_ECC_MONTGOMERY_448)
     { 30, MBEDTLS_ECP_DP_CURVE448, PSA_ECC_FAMILY_MONTGOMERY, 448 },
+#endif
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    { 0x11EC, MBEDTLS_ECP_DP_CURVE25519, PSA_ECC_FAMILY_MONTGOMERY, 255 },
 #endif
     { 0, MBEDTLS_ECP_DP_NONE, 0, 0 },
 };

@@ -300,6 +300,36 @@ static int ssl_tls13_write_key_share_ext(mbedtls_ssl_context *ssl,
      * only one key share entry is allowed.
      */
     client_shares = p;
+    printf("*** UPQC_ENABLE_HYBRID_11EC defined: %d ***\n",
+#ifdef UPQC_ENABLE_HYBRID_11EC
+        1
+#else
+        0
+#endif
+    );
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    if (group_id == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768) {
+        unsigned char *group = p;
+        size_t key_exchange_len = 0;
+
+        MBEDTLS_SSL_CHK_BUF_PTR(p, end, 4);
+        p += 4;
+        printf("*** HYBRID GROUP DETECTED: 0x%04x ***\n", group_id);
+        printf("*** CALLING HYBRID KEY EXCHANGE FUNCTION ***\n");
+        ret = mbedtls_ssl_tls13_generate_hybrid_x25519mlkem768_key_exchange(
+            ssl, p, end, &key_exchange_len);
+        printf("*** HYBRID KEY EXCHANGE RESULT: ret=%d, len=%zu ***\n", ret, key_exchange_len);
+        p += key_exchange_len;
+        if (ret != 0) {
+            printf("*** client hello: failed generating hybrid key exchange ***\n");
+            return ret;
+        }
+
+        MBEDTLS_PUT_UINT16_BE(group_id, group, 0);
+        MBEDTLS_PUT_UINT16_BE(key_exchange_len, group, 2);
+        printf("*** HYBRID KEY SHARE WRITTEN: %zu bytes ***\n", key_exchange_len);
+    } else
+#endif /* UPQC_ENABLE_HYBRID_11EC */
 #if defined(PSA_WANT_ALG_ECDH) || defined(PSA_WANT_ALG_FFDH)
     if (mbedtls_ssl_tls13_named_group_is_ecdhe(group_id) ||
         mbedtls_ssl_tls13_named_group_is_ffdh(group_id)) {
@@ -493,6 +523,16 @@ static int ssl_tls13_parse_key_share_ext(mbedtls_ssl_context *ssl,
         return MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE;
     }
 
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    if (group == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768) {
+        MBEDTLS_SSL_DEBUG_MSG(2,
+                              ("Hybrid group name: %s", mbedtls_ssl_named_group_to_str(group)));
+        ret = mbedtls_ssl_tls13_parse_hybrid_x25519mlkem768_key_share(ssl, p, end - p);
+        if (ret != 0) {
+            return ret;
+        }
+    } else
+#endif /* UPQC_ENABLE_HYBRID_11EC */
 #if defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_SOME_EPHEMERAL_ENABLED)
     if (mbedtls_ssl_tls13_named_group_is_ecdhe(group) ||
         mbedtls_ssl_tls13_named_group_is_ffdh(group)) {
