@@ -762,6 +762,16 @@ struct mbedtls_ssl_handshake_params {
     size_t xxdh_psa_peerkey_len;
 #endif /* MBEDTLS_KEY_EXCHANGE_SOME_XXDH_PSA_ANY_ENABLED */
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3) && defined(UPQC_ENABLE_HYBRID_11EC)
+    uint8_t *mlx_mlkem_sk;
+    size_t mlx_mlkem_sk_len;
+    uint8_t x25519_priv[32];
+    uint8_t hybrid_state_allocated;
+    uint8_t hybrid_ss[64];
+    size_t hybrid_ss_len;
+    uint8_t hybrid_ss_valid;
+#endif /* MBEDTLS_SSL_PROTO_TLS1_3 && UPQC_ENABLE_HYBRID_11EC */
+
 #if defined(MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED)
     psa_pake_operation_t psa_pake_ctx;        /*!< EC J-PAKE key exchange */
     mbedtls_svc_key_id_t psa_pake_password;
@@ -2104,6 +2114,26 @@ int mbedtls_ssl_tls13_generate_and_write_xxdh_key_exchange(
     size_t *out_len);
 #endif /* PSA_WANT_ALG_ECDH || PSA_WANT_ALG_FFDH */
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3) && defined(UPQC_ENABLE_HYBRID_11EC)
+
+MBEDTLS_CHECK_RETURN_CRITICAL
+int mbedtls_ssl_tls13_generate_hybrid_x25519mlkem768_key_exchange(
+    mbedtls_ssl_context *ssl,
+    unsigned char *buf,
+    unsigned char *end,
+    size_t *out_len);
+
+MBEDTLS_CHECK_RETURN_CRITICAL
+int mbedtls_ssl_tls13_parse_hybrid_x25519mlkem768_key_share(
+    mbedtls_ssl_context *ssl,
+    const unsigned char *buf,
+    size_t buf_len);
+
+MBEDTLS_CHECK_RETURN_CRITICAL
+int mbedtls_ssl_tls13_cleanup_hybrid_state(mbedtls_ssl_context *ssl);
+
+#endif /* MBEDTLS_SSL_PROTO_TLS1_3 && UPQC_ENABLE_HYBRID_11EC */
+
 #if defined(MBEDTLS_SSL_EARLY_DATA)
 int mbedtls_ssl_tls13_write_early_data_ext(mbedtls_ssl_context *ssl,
                                            int in_new_session_ticket,
@@ -2218,7 +2248,8 @@ static inline int mbedtls_ssl_tls13_named_group_is_ecdhe(uint16_t named_group)
            named_group == MBEDTLS_SSL_IANA_TLS_GROUP_SECP256R1 ||
            named_group == MBEDTLS_SSL_IANA_TLS_GROUP_SECP384R1 ||
            named_group == MBEDTLS_SSL_IANA_TLS_GROUP_SECP521R1 ||
-           named_group == MBEDTLS_SSL_IANA_TLS_GROUP_X448;
+           named_group == MBEDTLS_SSL_IANA_TLS_GROUP_X448     ||
+           named_group == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768;
 }
 
 static inline int mbedtls_ssl_tls13_named_group_is_ffdh(uint16_t named_group)
@@ -2247,6 +2278,11 @@ static inline int mbedtls_ssl_named_group_is_offered(
 
 static inline int mbedtls_ssl_named_group_is_supported(uint16_t named_group)
 {
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    if (named_group == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768) {
+        return 1;
+    }
+#endif
 #if defined(PSA_WANT_ALG_ECDH)
     if (mbedtls_ssl_tls13_named_group_is_ecdhe(named_group)) {
         if (mbedtls_ssl_get_ecp_group_id_from_tls_id(named_group) !=

@@ -227,6 +227,7 @@ static int ssl_write_supported_groups_ext(mbedtls_ssl_context *ssl,
     *out_len = 0;
 
     MBEDTLS_SSL_DEBUG_MSG(3, ("client hello, adding supported_groups extension"));
+    printf("*** SIMPLE PRINTF: Starting supported groups extension processing ***\n");
 
     /* Check if we have space for header and length fields:
      * - extension_type            (2 bytes)
@@ -246,6 +247,14 @@ static int ssl_write_supported_groups_ext(mbedtls_ssl_context *ssl,
         int propose_group = 0;
 
         MBEDTLS_SSL_DEBUG_MSG(3, ("got supported group(%04x)", *group_list));
+        printf("*** SIMPLE PRINTF: Processing group: 0x%04x ***\n", *group_list);
+
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+        if ((flags & SSL_WRITE_SUPPORTED_GROUPS_EXT_TLS1_3_FLAG) &&
+            *group_list == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768) {
+            propose_group = 1;
+        }
+#endif
 
 #if defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_SOME_EPHEMERAL_ENABLED)
         if (flags & SSL_WRITE_SUPPORTED_GROUPS_EXT_TLS1_3_FLAG) {
@@ -280,6 +289,9 @@ static int ssl_write_supported_groups_ext(mbedtls_ssl_context *ssl,
             MBEDTLS_SSL_DEBUG_MSG(3, ("NamedGroup: %s ( %x )",
                                       mbedtls_ssl_named_group_to_str(*group_list),
                                       *group_list));
+            printf("*** SIMPLE PRINTF: WRITING GROUP TO WIRE: 0x%04x ***\n", *group_list);
+        } else {
+            printf("*** SIMPLE PRINTF: SKIPPING GROUP (propose_group=0): 0x%04x ***\n", *group_list);
         }
     }
 

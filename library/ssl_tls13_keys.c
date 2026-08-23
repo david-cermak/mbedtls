@@ -1430,6 +1430,21 @@ static int ssl_tls13_key_schedule_stage_handshake(mbedtls_ssl_context *ssl)
      * are derived in the handshake secret derivation stage.
      */
     if (mbedtls_ssl_tls13_key_exchange_mode_with_ephemeral(ssl)) {
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+        if (handshake->offered_group_id == MBEDTLS_SSL_IANA_TLS_GROUP_X25519MLKEM768) {
+            if (!handshake->hybrid_ss_valid || handshake->hybrid_ss_len != 64) {
+                MBEDTLS_SSL_DEBUG_MSG(1, ("Hybrid secret missing/invalid"));
+                return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+            }
+            shared_secret_len = handshake->hybrid_ss_len;
+            shared_secret = mbedtls_calloc(1, shared_secret_len);
+            if (shared_secret == NULL) {
+                return MBEDTLS_ERR_SSL_ALLOC_FAILED;
+            }
+            memcpy(shared_secret, handshake->hybrid_ss, shared_secret_len);
+            handshake->hybrid_ss_valid = 0;
+        } else
+#endif /* UPQC_ENABLE_HYBRID_11EC */
         if (mbedtls_ssl_tls13_named_group_is_ecdhe(handshake->offered_group_id) ||
             mbedtls_ssl_tls13_named_group_is_ffdh(handshake->offered_group_id)) {
 #if defined(PSA_WANT_ALG_ECDH) || defined(PSA_WANT_ALG_FFDH)
@@ -1500,6 +1515,12 @@ cleanup:
     if (shared_secret != NULL) {
         mbedtls_zeroize_and_free(shared_secret, shared_secret_len);
     }
+#if defined(UPQC_ENABLE_HYBRID_11EC)
+    if (handshake->hybrid_ss_len) {
+        mbedtls_platform_zeroize(handshake->hybrid_ss, handshake->hybrid_ss_len);
+        handshake->hybrid_ss_len = 0;
+    }
+#endif
 
     return ret;
 }
